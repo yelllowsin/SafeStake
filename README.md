@@ -6,8 +6,7 @@ SafeStake is a decentralized validation framework for performing ETH2 duties and
 
 Below is the architecture of SafeStake.
 
-
-![alt](https://github.com/traklcoin/Safestake_doc/blob/main/architecture.png?raw=true))
+![alt](https://github.com/ParaState/SafeStake/blob/main/architecture.png?raw=true))
 
 ## Get Started
 
