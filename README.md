@@ -62,30 +62,37 @@ SafeStake service provider contains several components:
 
 The duty agreement (using Hotstuff) among operators requires that these operators know IP of each other in a p2p network. Therefore, SafeSake provides a root node such that operators can consult and join the p2p network.
 
+#### Dependencies
+ * Public Static Network IP 
+ * Hardware(recommend)
+   * CPU: 4
+   * Memory: 8G
+   * Disk: 200GB
+ * OS
+   * Unix
+ * Software
+   * Docker
+   * Docker Compose 
+
+
 ##### Installation
 
 Clone this repository:
 
 ```shell
-git clone --recurse-submodules https://github.com/zicofish/dvf.git
+git clone --recurse-submodules https://github.com/ParaState/SafeStakeOperator
 cd dvf
 ```
 
-Install Rust and build lighthouse and this project:
+Install Docker and Docker Compose
+
+* [install docker engine](https://docs.docker.com/engine/install/)
+* [install docker compose](https://docs.docker.com/compose/install/)
+
+Build root node:
 
 ```shell
-# Install Rust
-curl --tlsv1.2 https://sh.rustup.rs -sSf | sh
-
-# Build lighthouse
-cd lighthouse
-cargo build --release
-./target/release/lighthouse --version
-cd ..
-
-# Build our project
-cargo build --release
-./target/release/dvf --version
+sudo docker compose build -f docker-compose-boot.yml build
 ```
 
 ##### Start Service
@@ -93,175 +100,21 @@ cargo build --release
 Run the following to start the root node service:
 
 ```shell
-(./target/release/dvf_root_node 35.88.15.244 9005 > boot_node_output 2>&1 &)
+sudo docker compose build -f docker-compose-boot.yml up -d
 ```
-
-- `35.88.15.244` is the IP of the running machine. Change it to your machine's IP.
-
-- `9005` is the port that the root node will be listening on.
-
-The log file `boot_node_output` contains an ENR output, for example, like this:
+Get root node enr
 
 ```
-enr:-IS4QNyznRo6EasKc-YC_u7A_tJN3EmFM-GppAvaR33tanOSfNo0XZYh3vTyFtW_LhhKnI0i2kzeCSP8BBoZIwg0ihIBgmlkgnY0gmlwhCNYD_SJc2VjcDI1NmsxoQPKY0yuDUmstAHYpMa2_oxVtw0RW_QAdpzBQA8yWM0xOIN1ZHCCIy0
+docker-compose -f docker-compose-boot.yml logs -f dvf_root_node | grep enr
 ```
+output
+> dvf-dvf_root_node-1  | Base64 ENR: *enr:-IS4QNa-kpJM1eWfueeEnY2iXlLAL0QY2gAWAhmsb4c8VmrSK9J7N5dfXS_DgSASCDrUTHMqMUlP4OXSYEVh-Z7zFHkBgmlkgnY0gmlwhAMBnbWJc2VjcDI1NmsxoQPKY0yuDUmstAHYpMa2_oxVtw0RW_QAdpzBQA8yWM0xOIN1ZHCCIy0*
 
 NOTE: ***SafeStake should maintain such ENR(s) of root node(s) on its website, so that users who are registering as operators can use them to start operator nodes.***
 
-#### Web Server
-
-Clone repositories:
-
-```shell
-git clone https://github.com/zeuson0/docker_safe_stake
-cd docker_safe_stake
-git clone https://github.com/zeuson0/safestake-web
-git clone https://github.com/zeuson0/safestake-explorer
-git clone https://github.com/zeuson0/safestake-server
-```
-
-After that, You can modify the `.env` to set the environments, like mysql, smart contract address, etc.
-
-Deploy services:
-
-```shell
-cd docker_safe_stake
-docker-compose up -d
-```
 
 ### Depoly Operator
-
-An operator should run three pieces of software in order to join SafeStake's eco-system:
-
-- An Eth1 execution client (we use `geth` as an example below)
-
-- A lighthouse beacon node client
-
-- A SafeStake operator node client
-
-#### Preparation
-
-Clone this repository:
-
-```shell
-git clone --recurse-submodules https://github.com/zicofish/dvf.git
-cd dvf
-```
-
-Install Eth1 client:
-
-```shell
-./scripts/geth_install.sh
-geth --version
-```
-
-Install Rust and build lighthouse and this project:
-
-```shell
-# Install Rust
-curl --tlsv1.2 https://sh.rustup.rs -sSf | sh
-
-# Build lighthouse
-cd lighthouse
-cargo build --release
-./target/release/lighthouse --version
-cd ..
-
-# Build our project
-cargo build --release
-./target/release/dvf --version
-```
-
-#### Start an Operator
-
-Start the `geth` client and let it sync with the blockchain. The syncing process might take some time (from hours to one day depending on your network environment).
-
-```shell
-(geth \
-    --ropsten \
-    --http \
-    --datadir /var/lib/goethereum \
-    --metrics \
-    --metrics.expensive \
-    --pprof \
-    --http.api="engine,eth,web3,net,debug" \
-    --http.corsdomain "*" \
-    --authrpc.jwtsecret=/var/lib/goethereum/jwtsecret \
-    --override.terminaltotaldifficulty 50000000000000000 \
-> geth_output 2>&1 &)
-```
-
-- `--ropsten`: run geth on the `ropsten` testnet. Use other values if target a different net.
-- `geth` uses port `8551` to communicate with lighthouse, hence this port should be accessible from the beacon node.
-
-After syncing, start the beacon node:
-
-```shell
-(./lighthouse/target/release/lighthouse bn \
-    --network ropsten \
-    --datadir /var/lib/lighthouse \
-    --staking \
-    --http-allow-sync-stalled \
-    --merge \
-    --execution-endpoints http://127.0.0.1:8551 \
-    --metrics \
-    --validator-monitor-auto \
-    --jwt-secrets="/var/lib/goethereum/jwtsecret" \
-    --terminal-total-difficulty-override 50000000000000000 \
-> bn_output 2>&1 &)
-tail -f bn_output
-```
-
-- `--network` : Specify the target net
-- beacon node uses port `5052` to communicate with the following operator node, hence this port should be accessible from the operator node.
-
-Start the operator node:
-
-```shell
-(./target/release/dvf validator_client \
-    --debug-level info \
-    --network ropsten \
-    --ip 35.88.15.244 \
-    --boot-enr enr:-IS4QNyznRo6EasKc-YC_u7A_tJN3EmFM-GppAvaR33tanOSfNo0XZYh3vTyFtW_LhhKnI0i2kzeCSP8BBoZIwg0ihIBgmlkgnY0gmlwhCNYD_SJc2VjcDI1NmsxoQPKY0yuDUmstAHYpMa2_oxVtw0RW_QAdpzBQA8yWM0xOIN1ZHCCIy0 \
-> dvf_output 2>&1 &)
-tail -f dvf_output
-```
-
-- `--network` : Specify the target net
-
-- `--ip` : Provide the IP of the running machine
-
-- `--boot-enr` : Specify the ENR of the root node
-
-NOTE: The operator node requires ports `25000-25003` to be available for the Hotstuff protocol.
-
-## Docker
-
-TO BE UPDATED.
-
-You need to first install [Docker](https://docs.docker.com/engine/install/) before moving on.
-
-### Build docker image
-
-```sh
-docker build -t safestake .
-```
-
-### Start a docker container
-
-```sh
-docker run -it safestake /bin/bash
-```
-
-## 
-
-## Documentation
-
-Run the following to generate documentation in `target/doc/dvf/`:
-
-```shell
-cargo doc --no-deps
-```
+[https://github.com/ParaState/SafeStakeOperator](https://github.com/ParaState/SafeStakeOperator)
 
 ## Security Warnings
 
