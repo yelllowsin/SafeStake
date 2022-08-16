@@ -80,7 +80,7 @@ The duty agreement (using Hotstuff) among operators requires that these operator
 Clone this repository:
 
 ```shell
-git clone --recurse-submodules https://github.com/ParaState/SafeStakeOperator
+git clone --recurse-submodules https://github.com/ParaState/SafeStakeOperator dvf
 cd dvf
 ```
 
@@ -92,7 +92,7 @@ Install Docker and Docker Compose
 Build root node:
 
 ```shell
-sudo docker compose build -f docker-compose-boot.yml build
+sudo docker compose -f docker-compose-boot.yml build
 ```
 
 ##### Start Service
@@ -100,7 +100,7 @@ sudo docker compose build -f docker-compose-boot.yml build
 Run the following to start the root node service:
 
 ```shell
-sudo docker compose build -f docker-compose-boot.yml up -d
+sudo docker compose -f docker-compose-boot.yml up -d
 ```
 Get root node enr
 
